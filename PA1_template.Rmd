@@ -1,0 +1,115 @@
+```{r}
+library(knitr)
+library(dplyr)
+library(lattice)
+library(lubridate)
+library(data.table)
+```
+
+#Setting envinroment 
+```{r}
+print(getwd())
+setwd("C:/Reproducible Research/Week 2/peer assignment 1/")
+print(getwd())
+```
+
+#Loading data
+```{r}
+activity_data <- read.csv("K:/CBA/Membership Dashboard/analysis_with_R/Coursera/Reproducible Research/Week 2/peer assignment 1/data/activity.csv",stringsAsFactors=TRUE)
+```
+
+```{r}
+attach(activity_data)
+```
+
+```{r}
+activity <- as.data.frame(activity_data[rowSums(is.na(activity_data)) != ncol(activity_data),])
+is.na(activity) = activity=='?'
+is.na(activity) = activity==' ?'
+is.na(activity) = activity=='? '
+activity <- na.omit(activity)
+```
+
+
+#Total number of steps taken per day
+```{r}
+total_steps <- tapply(activity$steps,activity$date,sum, na.rm=TRUE)
+hist(total_steps,col="red",xlab="(Total Number of (Steps Taken))",main = "Histogram of the Total Number of Steps",breaks=20)
+```
+
+#Mean and median of the total number of steps taken per day
+```{r}
+print(mean(total_steps,na.rm=TRUE))
+print(median(total_steps,na.rm=TRUE))
+```
+
+#Aggregating steps by interval
+
+```{r}
+means <- aggregate(list(steps=activity$steps), by=list(interval=activity$interval),mean,na.rm=TRUE)
+```
+
+#Time series plot of the average number of steps taken
+```{r}
+plot(means,type="l",col="green",lwd=2,xlab="5-minute interval",main="Time series of the average number of steps")
+```
+
+#Maximum number of steps
+```{r}
+print(means[which.max(means$steps),])
+```
+
+
+#Replace NA by averages
+```{r}
+for(i in 1:ncol(activity_data)){
+  activity_data[is.na(activity_data[,i]), i] <- mean(activity_data[,i], na.rm = TRUE)
+}
+```
+
+```{r}
+clean <- activity_data
+```
+
+
+#Total number of steps taken per day in clean
+```{r}
+total_steps_clean <- tapply(clean$steps,clean$date,sum, na.rm=TRUE)
+print(total_steps_clean)
+```
+
+#Histogram of the total number of steps taken per day in clean
+```{r}
+hist(total_steps_clean,col="blue",xlab="(Total Number of (Steps Taken))",main = "Histogram of the Total Number of Steps",breaks=20)
+```
+
+#Comparing week and weekends
+```{r}
+temp <- as.POSIXlt(activity_data$date, format = "%Y-%m-%d")
+tmpWeekDays <- temp$wday
+tmpWeekDays[tmpWeekDays == 0] = 0
+tmpWeekDays[tmpWeekDays == 6] = 0
+tmpWeekDays[tmpWeekDays != 0] = 1
+tmpWeekDaysFactor <- factor(tmpWeekDays, levels = c(0, 1))
+# Add the factor variable to the data
+activity_data$WD <- tmpWeekDaysFactor
+# Calculate the mean
+stepsMeanPerWeekday <- tapply(activity_data$steps, list(activity_data$interval, activity_data$WD), mean, 
+                               na.rm = TRUE)
+
+par(mfrow = c(2, 1))
+# Display the 2 plots
+with(activity_data, {
+  par(mai = c(0, 1, 1, 0))
+  plot(stepsMeanPerWeekday[, 1], type = "l", main = ("Steps vs. Interval"), 
+       xaxt = "n", ylab = "Week ends")
+  title = ("# of Steps v.s. Interval")
+  par(mai = c(1, 1, 0, 0))
+  plot(stepsMeanPerWeekday[, 2], type = "l", xlab = "Interval", ylab = "Week days")
+  
+})
+```
+
+```{r}
+detach(activity_data)
+```
